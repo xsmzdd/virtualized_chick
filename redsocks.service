@@ -1,0 +1,11 @@
+[Unit]
+Description=Redsocks Transparent Proxy
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/path/to/redsocks/redsocks -c /path/to/redsocks/redsocks.conf
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
