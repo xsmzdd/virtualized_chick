@@ -77,7 +77,7 @@ modify_hosts() {
 # 主菜单
 main_menu() {
     clear
-    echo -e "${GREEN}=== 代理配置脚本 ===${NC}"
+    echo -e "${GREEN}=== LXD全局代理配置脚本 ===${NC}"
     echo "1. 安装配置"
     echo "2. 还原配置"
     echo -n "请选择操作 [1-2]: "
