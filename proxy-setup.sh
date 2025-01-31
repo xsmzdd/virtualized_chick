@@ -64,10 +64,20 @@ redudp {
 EOF
 }
 
+# 修改/etc/hosts文件
+modify_hosts() {
+    if ! grep -q "api.myip.la" /etc/hosts; then
+        echo "127.0.0.1 api.myip.la" >> /etc/hosts
+        echo -e "${YELLOW}[+] 已将 '127.0.0.1 api.myip.la' 添加到 /etc/hosts 文件。${NC}"
+    else
+        echo -e "${YELLOW}[+] '127.0.0.1 api.myip.la' 已存在于 /etc/hosts 文件中。${NC}"
+    fi
+}
+
 # 主菜单
 main_menu() {
     clear
-    echo -e "${GREEN}=== LXD一键全局代理配置脚本 ===${NC}"
+    echo -e "${GREEN}=== 代理配置脚本 ===${NC}"
     echo "1. 安装配置"
     echo "2. 还原配置"
     echo -n "请选择操作 [1-2]: "
@@ -173,6 +183,9 @@ EOF
     systemctl enable redsocks > /dev/null 2>&1
     systemctl start redsocks
 
+    # 修改/etc/hosts文件
+    modify_hosts
+
     # 验证配置
     echo -e "${YELLOW}[+] 正在验证代理配置..."
     detected_ip=$(curl -s http://ip.sb)
@@ -205,8 +218,15 @@ uninstall_proxy() {
     rm -rf $(pwd)/redsocks
     rm -f proxy-rules.sh
 
+    # 移除/etc/hosts中的条目
+    sed -i '/api.myip.la/d' /etc/hosts
+    echo -e "${YELLOW}[+] 已从 /etc/hosts 文件中移除 '127.0.0.1 api.myip.la'。${NC}"
+
     echo -e "${GREEN}✓ 配置已成功还原！${NC}"
 }
 
 # 执行主菜单
 main_menu
+
+
+
