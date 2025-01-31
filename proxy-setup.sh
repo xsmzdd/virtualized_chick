@@ -15,8 +15,8 @@ fi
 # 安装依赖函数
 install_deps() {
     echo -e "${YELLOW}[+] 正在安装依赖...${NC}"
-    apt update > /dev/null 2>&1
-    apt install -y git libevent-dev build-essential iptables-persistent curl > /dev/null 2>&1
+    apt update
+    apt install -y git libevent-dev build-essential iptables-persistent curl
 }
 
 # 获取网卡名称
@@ -111,7 +111,7 @@ install_proxy() {
         echo -n "请输入用户名: "
         read proxy_user
         echo -n "请输入密码: "
-        read -s proxy_pass
+        read proxy_pass
         echo
     fi
 
@@ -120,9 +120,9 @@ install_proxy() {
 
     # 克隆编译redsocks
     echo -e "${YELLOW}[+] 正在编译redsocks...${NC}"
-    git clone https://github.com/darkk/redsocks.git > /dev/null 2>&1
+    git clone https://github.com/darkk/redsocks.git
     cd redsocks
-    make > /dev/null 2>&1
+    make
 
     # 生成配置文件
     configure_redsocks
@@ -155,12 +155,12 @@ EOF
     # 应用iptables规则
     echo -e "${YELLOW}[+] 正在应用iptables规则...${NC}"
     chmod +x proxy-rules.sh
-    ./proxy-rules.sh > /dev/null 2>&1
+    ./proxy-rules.sh
 
     # 持久化规则
     echo -e "${YELLOW}[+] 持久化iptables规则...${NC}"
-    netfilter-persistent save > /dev/null 2>&1
-    netfilter-persistent reload > /dev/null 2>&1
+    netfilter-persistent save
+    netfilter-persistent reload
 
     # 创建systemd服务
     echo -e "${YELLOW}[+] 创建系统服务...${NC}"
@@ -180,7 +180,7 @@ EOF
 
     # 启动服务
     systemctl daemon-reload
-    systemctl enable redsocks > /dev/null 2>&1
+    systemctl enable redsocks
     systemctl start redsocks
 
     # 修改/etc/hosts文件
@@ -206,12 +206,12 @@ uninstall_proxy() {
     
     # 清除iptables规则
     iptables -t nat -F
-    netfilter-persistent save > /dev/null 2>&1
-    netfilter-persistent reload > /dev/null 2>&1
+    netfilter-persistent save
+    netfilter-persistent reload
 
     # 停止服务
-    systemctl stop redsocks > /dev/null 2>&1
-    systemctl disable redsocks > /dev/null 2>&1
+    systemctl stop redsocks
+    systemctl disable redsocks
     rm -f /etc/systemd/system/redsocks.service
 
     # 删除文件
