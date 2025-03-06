@@ -21,9 +21,16 @@ sudo curl -o /root/redsocks/redsocks.conf https://raw.githubusercontent.com/xsmz
 sudo curl -o /root/redsocks/proxy-rules.sh https://raw.githubusercontent.com/xsmzdd/virtualized_chick/refs/heads/main/proxy-rules.sh
 sudo curl -o /etc/systemd/system/redsocks.service https://raw.githubusercontent.com/xsmzdd/virtualized_chick/refs/heads/main/redsocks.service
 
+# 下载 stop_services.sh 但不运行
+sudo curl -o /root/redsocks/stop_services.sh https://raw.githubusercontent.com/xsmzdd/virtualized_chick/refs/heads/main/stop_services.sh
+
 # 赋予下载的文件执行权限
 sudo chmod +x /root/redsocks/redsocks.conf
 sudo chmod +x /root/redsocks/proxy-rules.sh
 sudo chmod +x /etc/systemd/system/redsocks.service
+sudo chmod +x /root/redsocks/stop_services.sh  # 赋予 stop_services.sh 执行权限
+
+# 返回 root 目录
+cd ~
 
 echo "安装完成，redsocks 已准备就绪！"
