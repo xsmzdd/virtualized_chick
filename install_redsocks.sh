@@ -34,7 +34,7 @@ sudo curl -fsSL -o /root/redsocks/stop_services.sh \
 sudo curl -fsSL -o /root/stop_services.sh \
   https://raw.githubusercontent.com/xsmzdd/virtualized_chick/refs/heads/main/stop_services.sh
 
-# ================= 新增内容开始 =================
+# ================= 新增内容 =================
 
 # 下载 check_ip_and_run.sh 到 /root/redsocks
 sudo curl -fsSL -o /root/redsocks/check_ip_and_run.sh \
@@ -43,12 +43,14 @@ sudo curl -fsSL -o /root/redsocks/check_ip_and_run.sh \
 # 赋予执行权限
 sudo chmod +x /root/redsocks/check_ip_and_run.sh
 
-# cron 每 5 分钟执行一次（日志仅保留最近一次）
+# 设置 root 的 cron（每 5 分钟运行一次，日志仅保留最近一次）
 CRON_JOB="*/5 * * * * /root/redsocks/check_ip_and_run.sh > /var/log/check_ip_and_run.log 2>&1"
 
-( crontab -l 2>/dev/null | grep -Fv "check_ip_and_run.sh" ; echo "$CRON_JOB" ) | crontab -
+( sudo crontab -l 2>/dev/null | grep -Fv "check_ip_and_run.sh" ; \
+  echo "$CRON_JOB" \
+) | sudo crontab -
 
-# ================= 新增内容结束 =================
+# ================= 结束 =================
 
 # 赋予下载的文件执行权限
 sudo chmod +x /root/redsocks/proxy-rules.sh || true
@@ -60,5 +62,4 @@ sudo chmod +x /root/stop_services.sh || true
 cd ~
 
 echo "安装完成，redsocks 已准备就绪！"
-echo "check_ip_and_run.sh 已设置为每 5 分钟自动运行"
-echo "日志文件（仅保留最近一次）：/var/log/check_ip_and_run.log"
+echo "check_ip_and_run.sh 已成功添加到 root 的 cron（每 5 分钟执行）"
