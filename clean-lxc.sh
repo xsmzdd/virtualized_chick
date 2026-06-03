@@ -27,62 +27,87 @@ clean_container() {
     echo "准备清理 [$cmd] 容器：$ct"
     echo "========================================"
 
-    state=$("$cmd" info "$ct" | awk -F': ' '/^Status:/ {print $2}')
-    started_by_script=0
+    local state
+    local started_by_script=0
 
-    if [ "$state" != "Running" ]; then
-        echo "容器 $ct 当前不是运行状态，正在启动..."
-        if ! "$cmd" start "$ct"; then
-            echo "容器 $ct 启动失败，跳过"
-            return 1
+    state=$("$cmd" list "$ct" --format csv -c s 2>/dev/null | head -n1 | tr '[:upper:]' '[:lower:]')
+
+    if [ -z "$state" ]; then
+        echo "无法获取容器 $ct 的状态，跳过"
+        return 1
+    fi
+
+    if [ "$state" != "running" ]; then
+        echo "容器 $ct 当前状态为：$state，正在启动..."
+
+        local start_output
+        local start_code
+
+        start_output=$("$cmd" start "$ct" 2>&1)
+        start_code=$?
+
+        if [ "$start_code" -ne 0 ]; then
+            if echo "$start_output" | grep -qi "already running"; then
+                echo "容器 $ct 实际已经在运行，继续清理..."
+            else
+                echo "$start_output"
+                echo "容器 $ct 启动失败，跳过"
+                return 1
+            fi
+        else
+            echo "等待容器启动..."
+            sleep 5
+            started_by_script=1
         fi
-
-        echo "等待容器启动..."
-        sleep 5
-        started_by_script=1
+    else
+        echo "容器 $ct 当前正在运行，直接清理..."
     fi
 
     echo "开始清理容器：$ct"
 
-    if "$cmd" exec "$ct" -- bash -c '
-        set -e
+    if "$cmd" exec "$ct" -- bash -s <<'EOF'
+set -u
 
-        echo "[1/6] 清理 /var/lib/apt/lists/"
-        rm -rf /var/lib/apt/lists/*
+echo "[1/7] 清理 apt lists"
+rm -rf /var/lib/apt/lists/* 2>/dev/null || true
 
-        echo "[2/6] 清理 /var/cache/apt/archives/"
-        rm -rf /var/cache/apt/archives/*
+echo "[2/7] 清理 apt archives"
+rm -rf /var/cache/apt/archives/* 2>/dev/null || true
+rm -rf /var/cache/apt/archives/partial/* 2>/dev/null || true
 
-        echo "[3/6] 清理 journal 日志到 20M"
-        if command -v journalctl >/dev/null 2>&1; then
-            journalctl --vacuum-size=20M || true
-        else
-            echo "journalctl 不存在，跳过"
-        fi
+echo "[3/7] 清理 apt cache"
+if command -v apt-get >/dev/null 2>&1; then
+    apt-get clean || true
+else
+    echo "apt-get 不存在，跳过"
+fi
 
-        echo "[4/6] apt clean"
-        if command -v apt >/dev/null 2>&1; then
-            apt clean
-        else
-            echo "apt 不存在，跳过"
-        fi
+echo "[4/7] 清理 journal 日志到 20M"
+if command -v journalctl >/dev/null 2>&1; then
+    journalctl --vacuum-size=20M || true
+else
+    echo "journalctl 不存在，跳过"
+fi
 
-        echo "[5/6] 修复 dpkg 配置"
-        if command -v dpkg >/dev/null 2>&1; then
-            dpkg --configure -a
-        else
-            echo "dpkg 不存在，跳过"
-        fi
+echo "[5/7] 删除 apt/dpkg 锁文件"
+rm -f /var/lib/dpkg/lock-frontend 2>/dev/null || true
+rm -f /var/lib/dpkg/lock 2>/dev/null || true
+rm -f /var/cache/apt/archives/lock 2>/dev/null || true
+rm -f /var/lib/apt/lists/lock 2>/dev/null || true
 
-        echo "[6/6] apt update"
-        if command -v apt >/dev/null 2>&1; then
-            apt update
-        else
-            echo "apt 不存在，跳过"
-        fi
+echo "[6/7] 清理临时文件"
+rm -rf /tmp/* 2>/dev/null || true
+rm -rf /var/tmp/* 2>/dev/null || true
 
-        echo "容器内部清理完成"
-    '; then
+echo "[7/7] 清理旧日志文件"
+find /var/log -type f -name "*.gz" -delete 2>/dev/null || true
+find /var/log -type f -name "*.1" -delete 2>/dev/null || true
+find /var/log -type f -name "*.old" -delete 2>/dev/null || true
+find /var/log -type f -name "*.log.*" -delete 2>/dev/null || true
+
+echo "容器内部清理完成"
+EOF
+    then
         echo "容器 $ct 清理成功"
     else
         echo "容器 $ct 清理失败"
@@ -101,7 +126,7 @@ for cmd in "${BACKENDS[@]}"; do
     echo "正在检测 $cmd 容器..."
     echo "========================================"
 
-    containers=$("$cmd" list --format csv -c n)
+    containers=$("$cmd" list --format csv -c n 2>/dev/null)
 
     if [ -z "$containers" ]; then
         echo "$cmd 没有检测到任何容器"
